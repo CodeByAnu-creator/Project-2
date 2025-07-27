@@ -179,7 +179,6 @@ st.sidebar.info(
     "This application provides key insights from OLA ride data."
 )
 
-st.caption("Developed as part of the Ola Ride Insights Project.")
 
 
 
