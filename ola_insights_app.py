@@ -1,3 +1,6 @@
+# This Streamlit app provides an in-depth analysis of Ola ride data.
+# It now includes a wider range of insights and improved database connection handling.
+
 import streamlit as st
 import pandas as pd
 from sqlalchemy import create_engine
@@ -6,7 +9,7 @@ import pymysql # Required by SQLAlchemy for MySQL connection, even if not direct
 import plotly.express as px
 
 # --- Database Connection Configuration ---
-# The app now securely fetches credentials from Streamlit secrets.
+# The app securely fetches credentials from Streamlit secrets.
 # You must set these up in your Streamlit Community Cloud dashboard or in a
 # .streamlit/secrets.toml file if running locally.
 # Example secrets.toml:
@@ -15,25 +18,46 @@ import plotly.express as px
 # user = "your_mysql_username"
 # password = "your_mysql_password"
 # database = "ola_rides_db"
-
+# port = 3306
 
 # --- Cached Database Engine Creation ---
 @st.cache_resource
 def get_db_engine():
     """
     Creates and returns a SQLAlchemy engine for connecting to the MySQL database.
-    This function now uses Streamlit secrets for credentials.
+    This function now uses Streamlit secrets for credentials and includes
+    more descriptive error messages for connection failures.
     """
-    db_uri = f"mysql+pymysql://{st.secrets['mysql']['user']}:{st.secrets['mysql']['password']}@{st.secrets['mysql']['host']}/{st.secrets['mysql']['database']}"
+    # Create the database URI with a check for the port in secrets
     try:
+        host = st.secrets['mysql']['host']
+        user = st.secrets['mysql']['user']
+        password = st.secrets['mysql']['password']
+        database = st.secrets['mysql']['database']
+        # The port is often optional, but including it can help resolve issues
+        port = st.secrets['mysql'].get('port', 3306)
+
+        db_uri = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
         engine = create_engine(db_uri)
+
         # Test the connection by executing a simple query
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
         st.success("Successfully connected to MySQL database!")
         return engine
+    except pymysql.err.OperationalError as e:
+        # A more helpful error message for "Can't connect" issues
+        st.error(f"""
+            Error connecting to MySQL database: {e}.
+            This often means the host or port is incorrect, or there's a network issue.
+            Please check:
+            1. Is the database server running and accessible from where this app is running?
+            2. Are your host, user, password, and port in `.streamlit/secrets.toml` correct?
+            3. Are there any firewall rules blocking the connection?
+        """)
+        st.stop()
     except Exception as e:
-        st.error(f"Error connecting to MySQL database. Please check your credentials: {e}")
+        st.error(f"An unexpected error occurred during database connection: {e}")
         st.stop()
 
 # --- Function to Run SQL Queries ---
@@ -77,7 +101,6 @@ page = st.radio(
 
 if page == "Home":
     st.title("🏡 OLA Ride Insights Project Overview")
-
     st.markdown("""
         This dashboard provides a high-level overview and key insights from a comprehensive analysis of OLA ride-sharing data.
         It serves as a single source of truth for tracking performance, customer behavior, and operational trends.
@@ -365,8 +388,6 @@ elif page == "Insights":
             st.info("No successful ride data available to calculate revenue.")
 
 
-
-
     elif insight_selection == "Rides Paid via UPI":
         st.header("📈 Payment done through UPI")
         st.markdown("Displays all rides where the payment method was 'UPI'.")
@@ -394,11 +415,7 @@ elif page == "Insights":
             st.info("Displayed the first 100 UPI-paid rides for performance.")
         else:
             st.info("No rides found with UPI as the payment method.")
-
         st.markdown("---")
-
-
-
 
     elif insight_selection == "UPI Usage Trend":
         st.header("📈 UPI Usage Trend Over Time")
@@ -421,8 +438,6 @@ elif page == "Insights":
             st.line_chart(upi_trend_df.set_index('Ride_Date'))
         else:
             st.info("No UPI ride data available to show trends.")
-
-
 
     elif insight_selection == "Average UPI Booking Value":
         st.header("💰 Average Booking Value for UPI Rides")
@@ -555,17 +570,6 @@ elif page == "Insights":
             else:
                 st.info("No incomplete rides found.")
 
-
-
-
-
-
-
-
-
-
-
-
     elif insight_selection == "Successful Bookings":
         st.header("All Successful Ola Bookings")
         successful_bookings_query = """
@@ -592,14 +596,5 @@ elif page == "Insights":
             st.info("Displayed the first 100 successful bookings for performance.")
         else:
             st.info("No successful bookings found.")
-
         st.markdown("---")
-
-
-
-
-
-
-
-
 
