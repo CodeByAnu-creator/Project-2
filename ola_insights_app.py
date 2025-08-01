@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
-from sqlalchemy import create_engine, text # Corrected: Import 'text' from sqlalchemy
+from sqlalchemy import create_engine
+from sqlalchemy.sql import text # Corrected: Import 'text' from sqlalchemy.sql
 import pymysql # Required by SQLAlchemy for MySQL connection, even if not directly used
 import plotly.express as px
 
