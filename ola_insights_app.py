@@ -3,32 +3,36 @@ import pandas as pd
 from sqlalchemy import create_engine, text # Corrected: Import 'text' from sqlalchemy
 import pymysql # Required by SQLAlchemy for MySQL connection, even if not directly used
 import plotly.express as px
-import plotly.express as px
 
 # --- Database Connection Configuration ---
-# IMPORTANT: Replace with your actual MySQL credentials
-DB_CONFIG = {
-    'host': 'localhost',        
-    'user': 'root', 
-    'password': 'God%40%239999', 
-    'database': 'ola'  
-}
+# The app now securely fetches credentials from Streamlit secrets.
+# You must set these up in your Streamlit Community Cloud dashboard or in a
+# .streamlit/secrets.toml file if running locally.
+# Example secrets.toml:
+# [mysql]
+# host = "your_mysql_host.com"
+# user = "your_mysql_username"
+# password = "your_mysql_password"
+# database = "ola_rides_db"
+
 
 # --- Cached Database Engine Creation ---
 @st.cache_resource
 def get_db_engine():
     """
     Creates and returns a SQLAlchemy engine for connecting to the MySQL database.
+    This function now uses Streamlit secrets for credentials.
     """
-    db_uri = f"mysql+pymysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}/{DB_CONFIG['database']}"
+    db_uri = f"mysql+pymysql://{st.secrets['mysql']['user']}:{st.secrets['mysql']['password']}@{st.secrets['mysql']['host']}/{st.secrets['mysql']['database']}"
     try:
         engine = create_engine(db_uri)
+        # Test the connection by executing a simple query
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
-        #st.success("Successfully connected to MySQL database!")
+        st.success("Successfully connected to MySQL database!")
         return engine
     except Exception as e:
-        st.error(f"Error connecting to MySQL database: {e}")
+        st.error(f"Error connecting to MySQL database. Please check your credentials: {e}")
         st.stop()
 
 # --- Function to Run SQL Queries ---
